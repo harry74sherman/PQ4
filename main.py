@@ -105,6 +105,8 @@ def create_training_data(stemmed_words, classes, documents, stemmer):
 
         #append actor to output
         output.append(actor_arr)
+        
+    return training_data, output
 
 
 def sigmoid(z):
@@ -126,10 +128,13 @@ def main():
     stemmer = LancasterStemmer()
 
     #get raw training data
-    raw_training_data = get_raw_training_data('dialogue_data.csv')
+    raw_training_data = get_raw_training_data('dialogue_data.csv')    
 
     #organize data and get words, classes, and documents
     stemmed_words, classes, documents = organize_raw_training_data(organize_raw_training_data, stemmer)
+    
+    #create training data and output
+    training_data, output = create_training_data(stemmed_words, classes, documents, stemmer)
 
 
 if __name__ == "__main__":
