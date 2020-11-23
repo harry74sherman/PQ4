@@ -21,9 +21,9 @@ def get_raw_training_data(filename):
 
     with open(filename, mode='r') as infile:
         reader = csv.reader(infile)
-        # TODO: Unclear how she wants this dictionary structured
-        for author, sentence in reader:
-            training_data["author"] = author
+
+        for person, sentence in reader:
+            training_data["person"] = person
             training_data["sentence"] = sentence
 
     return training_data
