@@ -17,14 +17,18 @@ def get_raw_training_data(filename):
     I think this is what she means?
     '''
 
-    training_data = {}
+    training_data = []
 
     with open(filename, mode='r') as infile:
         reader = csv.reader(infile)
 
+        author = {}
         for person, sentence in reader:
-            training_data["person"] = person
-            training_data["sentence"] = sentence
+            author["person"] = person
+            author["sentence"] = sentence
+            training_data.append(author)
+
+    print(training_data)
 
     return training_data
 
