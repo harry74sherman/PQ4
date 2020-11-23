@@ -34,7 +34,7 @@ def preprocess_words(words, stemmer):
     stemmed_words = []
 
     #remove punctuation
-    no_punctuation = [word for word in words in w.isalpha()] #TODO: Check this
+    no_punctuation = [word for word in words if word.isalpha()] #TODO: Check this
 
     #stem tokens
     stemmed_words = [stemmer.stem(word).lower() for word in no_punctuation] #TODO: Check this
