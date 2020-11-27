@@ -6,6 +6,15 @@ import json
 import os
 from nltk.stem.lancaster import LancasterStemmer
 import nltk
+import ssl
+
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
 nltk.download('punkt')
 
 
@@ -17,13 +26,11 @@ def get_raw_training_data(filename):
     with open(filename, mode='r') as infile:
         reader = csv.reader(infile)
 
-        author = {}
         for person, sentence in reader:
+            author = {}
             author["person"] = person
             author["sentence"] = sentence
             training_data.append(author)
-
-    print(training_data)
 
     return training_data
 
@@ -35,12 +42,11 @@ def preprocess_words(words, stemmer):
     stemmed_words = []
 
     # remove punctuation
-    # TODO: Check this
     no_punctuation = [word for word in words if word.isalpha()]
 
     # stem tokens
     stemmed_words = [stemmer.stem(word).lower()
-                     for word in no_punctuation]  # TODO: Check this
+                     for word in no_punctuation]
 
     # remove duplicates
     stemmed_words = set(stemmed_words)
@@ -63,18 +69,18 @@ def organize_raw_training_data(raw_training_data, stemmer):
 
     for data in raw_training_data:
 
-        #tokenize sentence
+        # tokenize sentence
         tokenized_sentence = nltk.word_tokenize(data["sentence"])
 
-        #add tokens to words
+        # add tokens to words
         words.extend(tokenized_sentence)
 
         actor = data["person"]
 
-        #add tuple  (tokens, actor) to documents
+        # add tuple  (tokens, actor) to documents
         documents.append((tokenized_sentence, actor))
 
-        #if actor not in classes, add to classes
+        # if actor not in classes, add to classes
         if actor not in classes:
             classes.append(actor)
 
@@ -99,22 +105,20 @@ def create_training_data(stemmed_words, classes, documents, stemmer):
         sentence = doc[0]  # index tuple for sentence
 
         # initialize and fill the bag
-        bag_of_words = [1 if word in stemmed_words else 0 for word in sentence]
+        bag_of_words = [1 if word in sentence else 0 for word in stemmed_words]
 
         # append new bag to old bag
         training_data.append(bag_of_words)
 
         # initialize list of 0s of len classes
-        actor_arr = []
-        for i in range(len(classes)):
-            output.append(0)
+        actor_arr = [0] * len(classes)
 
         actor = doc[1]  # index tuple for actor
 
         # mark the actor
         try:
-            index = classes.index(actor)  # TODO: Check this
-            output[index] = 1
+            index = classes.index(actor)
+            actor_arr[index] = 1
         except:
             pass  # actor not in list
 
@@ -135,7 +139,10 @@ def sigmoid_output_to_derivative(output):
 
     return output * (1-output)
 
+
 """* * * TRAINING * * *"""
+
+
 def init_synapses(X, hidden_neurons, classes):
     """Initializes our synapses (using random values)."""
     # Ensures we have a "consistent" randomness for convenience.
@@ -174,14 +181,16 @@ def get_synapses(epochs, X, y, alpha, synapse_0, synapse_1):
         # How much did we miss the target value?
         layer_2_error = y - layer_2
 
-        if (j% 10000) == 0 and j > 5000:
+        if (j % 10000) == 0 and j > 5000:
             # If this 10k iteration's error is greater than the last iteration,
             # break out.
             if np.mean(np.abs(layer_2_error)) < last_mean_error:
-                print("delta after "+str(j)+" iterations:" + str(np.mean(np.abs(layer_2_error))) )
+                print("delta after "+str(j)+" iterations:" +
+                      str(np.mean(np.abs(layer_2_error))))
                 last_mean_error = np.mean(np.abs(layer_2_error))
             else:
-                print("break:", np.mean(np.abs(layer_2_error)), ">", last_mean_error )
+                print("break:", np.mean(np.abs(layer_2_error)),
+                      ">", last_mean_error)
                 break
 
         # In what direction is the target value?  How much is the change for layer_2?
@@ -199,8 +208,10 @@ def get_synapses(epochs, X, y, alpha, synapse_0, synapse_1):
         synapse_0_weight_update = (layer_0.T.dot(layer_1_delta))
 
         if j > 0:
-            synapse_0_direction_count += np.abs(((synapse_0_weight_update > 0)+0) - ((prev_synapse_0_weight_update > 0) + 0))
-            synapse_1_direction_count += np.abs(((synapse_1_weight_update > 0)+0) - ((prev_synapse_1_weight_update > 0) + 0))
+            synapse_0_direction_count += np.abs(
+                ((synapse_0_weight_update > 0)+0) - ((prev_synapse_0_weight_update > 0) + 0))
+            synapse_1_direction_count += np.abs(
+                ((synapse_1_weight_update > 0)+0) - ((prev_synapse_1_weight_update > 0) + 0))
 
         synapse_1 += alpha * synapse_1_weight_update
         synapse_0 += alpha * synapse_0_weight_update
@@ -219,7 +230,7 @@ def save_synapses(filename, words, classes, synapse_0, synapse_1):
                'datetime': now.strftime("%Y-%m-%d %H:%M"),
                'words': words,
                'classes': classes
-              }
+               }
     synapse_file = "synapses.json"
 
     with open(synapse_file, 'w') as outfile:
@@ -229,12 +240,14 @@ def save_synapses(filename, words, classes, synapse_0, synapse_1):
 
 def train(X, y, words, classes, hidden_neurons=10, alpha=1, epochs=50000):
     """Train using specified parameters."""
-    print("Training with {0} neurons and alpha = {1}".format(hidden_neurons, alpha))
+    print("Training with {0} neurons and alpha = {1}".format(
+        hidden_neurons, alpha))
 
     synapse_0, synapse_1 = init_synapses(X, hidden_neurons, classes)
 
     # For each epoch, update our weights
-    synapse_0, synapse_1 = get_synapses(epochs, X, y, alpha, synapse_0, synapse_1)
+    synapse_0, synapse_1 = get_synapses(
+        epochs, X, y, alpha, synapse_0, synapse_1)
 
     # Save our work
     save_synapses("synapses.json", words, classes, synapse_0, synapse_1)
@@ -254,17 +267,19 @@ def start_training(words, classes, training_data, output):
 
 """* * * CLASSIFICATION * * *"""
 
+
 def bow(sentence, words):
     """Return bag of words for a sentence."""
     stemmer = LancasterStemmer()
 
     # Break each sentence into tokens and stem each token.
-    sentence_words = [stemmer.stem(word.lower()) for word in nltk.word_tokenize(sentence)]
+    sentence_words = [stemmer.stem(word.lower())
+                      for word in nltk.word_tokenize(sentence)]
 
     # Create the bag of words.
     bag = [0]*len(words)
     for s in sentence_words:
-        for i,w in enumerate(words):
+        for i, w in enumerate(words):
             if w == s:
                 bag[i] = 1
     return (np.array(bag))
@@ -296,10 +311,11 @@ def classify(words, classes, sentence):
     """Classifies a sentence by examining known words and classes and loading our calculated weights (synapse values)."""
     error_threshold = 0.2
     results = get_output_layer(words, sentence)
-    results = [[i,r] for i,r in enumerate(results) if r>error_threshold ]
+    results = [[i, r] for i, r in enumerate(results) if r > error_threshold]
     results.sort(key=lambda x: x[1], reverse=True)
-    return_results =[[classes[r[0]],r[1]] for r in results]
-    print("\nSentence to classify: {0}\nClassification: {1}".format(sentence, return_results))
+    return_results = [[classes[r[0]], r[1]] for r in results]
+    print("\nSentence to classify: {0}\nClassification: {1}".format(
+        sentence, return_results))
     return return_results
 
 
@@ -325,7 +341,8 @@ def main():
 
     # Classify new sentences.
     classify(words, classes, "will you look into the mirror?")
-    classify(words, classes, "mithril, as light as a feather, and as hard as dragon scales.")
+    classify(words, classes,
+             "mithril, as light as a feather, and as hard as dragon scales.")
     classify(words, classes, "the thieves!")
 
 
